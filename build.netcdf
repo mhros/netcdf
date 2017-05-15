@@ -1,0 +1,35 @@
+## ==== zlib ====
+## --------------
+cd $(basename $ZLIB)
+./configure
+make install prefix=$ZLIB
+
+
+## ==== hdf5 ====
+## --------------
+cd ../$(basename $HDF5)
+./configure --prefix=$HDF5 --disable-static --enable-shared --with-zlib=$ZLIB/include,$ZLIB/lib
+make && make install
+
+
+## ==== netcdf ====
+## ----------------
+depdirs="$NETCDF $HDF5 $ZLIB"
+function flag_fun {
+  array=( $1 )
+  prpnd=(${array[@]/#/$2})
+  appnd=(${prpnd[@]/%/$3})
+  echo "${appnd[@]}"
+}
+export CPPFLAGS="$(flag_fun "$depdirs" -I /include)"
+export LDFLAGS="$(flag_fun "$depdirs" -L /lib)"
+
+verC_F=($(echo ${NETCDF//[!0-9._]/} | tr "_" " "))
+
+cd ../netcdf-${verC_F[0]}
+./configure --prefix=$NETCDF --disable-static --enable-shared --enable-largefile --disable-dap --enable-fortran
+make && make install
+
+cd ../netcdf-fortran-${verC_F[1]}
+./configure --prefix=$NETCDF --disable-static --enable-shared --enable-largefile --with-pic
+make && make install
